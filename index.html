@@ -51,7 +51,15 @@
           <div id="selection-bar" class="selection-bar hidden">
             <button class="btn-text-muted" onclick="App.exitSelectionMode()">취소</button>
             <span id="selection-count" class="selection-count">0장 선택</span>
-            <button class="btn-primary btn-sm" id="btn-write-diary" onclick="App.startWriteDiary()" disabled>일기 쓰기</button>
+            <div class="selection-actions">
+              <button class="btn-danger-sm" id="btn-delete-photos" onclick="App.deleteSelectedPhotos()" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 6h18M19 6l-1 14H6L5 6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                삭제
+              </button>
+              <button class="btn-primary btn-sm" id="btn-write-diary" onclick="App.startWriteDiary()" disabled>일기 쓰기</button>
+            </div>
           </div>
         </div>
       </section>

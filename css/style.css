@@ -375,6 +375,26 @@ img { display: block; width: 100%; object-fit: cover; }
   font-weight: 600;
   color: var(--text);
 }
+.selection-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.btn-danger-sm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #FFF0F0;
+  color: var(--danger);
+  border: 1.5px solid #FFCCCC;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn-danger-sm:active { background: #FFD5D5; transform: scale(0.96); }
+.btn-danger-sm:disabled { opacity: 0.4; cursor: default; transform: none; }
 
 /* ============================================================
    DIARY LIST SCREEN

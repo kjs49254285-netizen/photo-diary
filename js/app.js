@@ -225,10 +225,12 @@ const App = (() => {
   }
 
   function updateSelectionBar() {
-    const n   = s.selectedPhotoIds.length;
-    const btn = document.getElementById('btn-write-diary');
+    const n         = s.selectedPhotoIds.length;
+    const btnWrite  = document.getElementById('btn-write-diary');
+    const btnDelete = document.getElementById('btn-delete-photos');
     document.getElementById('selection-count').textContent = `${n}장 선택`;
-    if (btn) btn.disabled = n === 0;
+    if (btnWrite)  btnWrite.disabled  = n === 0;
+    if (btnDelete) btnDelete.disabled = n === 0;
   }
 
   /* ============================================================
@@ -610,12 +612,62 @@ const App = (() => {
 
   async function deleteDiary(diaryId) {
     showConfirm('이 일기를 삭제할까요?', async () => {
-      await DB.deleteDiary(diaryId);
+      try {
+        await DB.deleteDiary(diaryId);
+      } catch (err) {
+        showToast('❌ 삭제 실패: ' + err.message);
+        return;
+      }
+      // 로컬 상태에서 즉시 제거
       s.diaries = s.diaries.filter(d => d.id !== diaryId);
+      // navigate로 일기장 탭으로 이동 (goBack보다 안정적)
+      navigate('diary-list');
       renderTimeline();
       renderCalendar();
-      goBack();
-      showToast('일기를 삭제했어요');
+      showToast('일기를 삭제했어요 🗑️');
+    });
+  }
+
+  async function deleteSelectedPhotos() {
+    const ids   = [...s.selectedPhotoIds];
+    const count = ids.length;
+    if (count === 0) return;
+
+    showConfirm(`선택한 사진 ${count}장을 삭제할까요?`, async () => {
+      try {
+        // DB에서 삭제
+        for (const id of ids) {
+          await DB.deletePhoto(id);
+        }
+      } catch (err) {
+        showToast('❌ 삭제 실패: ' + err.message);
+        return;
+      }
+
+      const deletedSet = new Set(ids);
+
+      // 로컬 상태에서 사진 제거
+      s.photos = s.photos.filter(p => !deletedSet.has(p.id));
+
+      // 일기에서 삭제된 사진 ID 제거 후 DB 업데이트
+      const updatedDiaries = [];
+      for (const diary of s.diaries) {
+        const before = diary.photoIds.length;
+        const newIds = diary.photoIds.filter(id => !deletedSet.has(id));
+        if (newIds.length !== before) {
+          const updated = { ...diary, photoIds: newIds };
+          try { await DB.saveDiary(updated); } catch (_) {}
+          updatedDiaries.push(updated);
+        } else {
+          updatedDiaries.push(diary);
+        }
+      }
+      s.diaries = updatedDiaries;
+
+      exitSelectionMode();
+      renderTimeline();
+      renderCalendar();
+      showToast(`${count}장의 사진을 삭제했어요 🗑️`);
     });
   }
 
@@ -820,6 +872,7 @@ const App = (() => {
     openFilePicker, handleFileSelect,
     handlePhotoTap, exitSelectionMode,
     startWriteDiary, startNewDiary,
+    deleteSelectedPhotos,
     removeWritePhoto, selectEmotion, updateCharCount, handleDiarySubmit,
     viewDiary, viewDiaryFrom, editDiary, deleteDiary, shareDiary,
     calendarPrevMonth, calendarNextMonth, selectCalDate,
