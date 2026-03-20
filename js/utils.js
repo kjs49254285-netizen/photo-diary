@@ -61,12 +61,13 @@ const Utils = (() => {
 
   /**
    * Compress a File to a base64 JPEG string.
+   * Firestore 1MB 제한 대응: 기본값 800px / quality 0.65
    * @param {File}   file
-   * @param {number} maxWidth  default 1200px
-   * @param {number} quality   default 0.75
+   * @param {number} maxWidth  default 800px
+   * @param {number} quality   default 0.65
    * @returns {Promise<string>} data URL
    */
-  function compressImage(file, maxWidth = 1200, quality = 0.75) {
+  function compressImage(file, maxWidth = 800, quality = 0.65) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
@@ -95,6 +96,33 @@ const Utils = (() => {
       };
 
       reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * 이미 압축된 data URL을 추가 압축 (Firestore 1MB 초과 방지용).
+   * @param {string} dataUrl  기존 base64 data URL
+   * @param {number} maxWidth
+   * @param {number} quality
+   * @returns {Promise<string>}
+   */
+  function compressDataUrl(dataUrl, maxWidth = 600, quality = 0.55) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = Math.round((maxWidth / width) * height);
+          width  = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width  = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = dataUrl;
     });
   }
 
@@ -155,6 +183,7 @@ const Utils = (() => {
     fileDateStr,
     groupByDate,
     compressImage,
+    compressDataUrl,
     buildShareHTML,
   };
 })();

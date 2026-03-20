@@ -242,33 +242,70 @@ const App = (() => {
     const files = Array.from(event.target.files);
     if (!files.length) return;
 
-    showLoading(`0 / ${files.length}장 처리 중...`);
+    // 일기 쓰기 화면에서 사진 추가하는 경우를 감지
+    const fromWriteScreen = s.currentScreen === 'diary-write';
+
+    showLoading(`사진 처리 중... (1 / ${files.length})`);
     let done = 0;
+    let firstError = null;
+    const newIds = [];
 
     for (const file of files) {
       try {
-        const data    = await Utils.compressImage(file);
-        const dateStr = Utils.fileDateStr(file);
-        const photo   = {
+        // 1단계: 압축
+        updateLoadingText(`압축 중... ${done + 1} / ${files.length}`);
+        const data = await Utils.compressImage(file);
+
+        const photo = {
           id:         Utils.generateId('photo'),
           data,
-          date:       dateStr,
+          date:       Utils.fileDateStr(file),
           filename:   file.name,
           importedAt: Date.now(),
         };
+
+        // 2단계: Firestore 저장
+        updateLoadingText(`저장 중... ${done + 1} / ${files.length}`);
         const saved = await DB.savePhoto(photo);
+
         s.photos.push(saved);
+        newIds.push(saved.id);
         done++;
-        updateLoadingText(`${done} / ${files.length}장 처리 중...`);
+        updateLoadingText(`완료 ${done} / ${files.length}장`);
+
       } catch (err) {
-        console.error('Import error:', err);
+        console.error('사진 가져오기 오류:', err);
+        if (!firstError) firstError = err;
       }
     }
 
     hideLoading();
     event.target.value = '';
+
+    if (done === 0) {
+      // 전체 실패 — 실제 오류 메시지를 사용자에게 표시
+      const detail = firstError
+        ? firstError.message
+        : '알 수 없는 오류가 발생했어요';
+      showToast('❌ 저장 실패: ' + detail);
+      return;
+    }
+
+    // 일기 쓰기 화면에서 가져온 경우 → 선택 목록에 자동 추가
+    if (fromWriteScreen && newIds.length > 0) {
+      const slots = 10 - s.selectedPhotoIds.length;
+      s.selectedPhotoIds.push(...newIds.slice(0, slots));
+      renderWritePhotosStrip();
+    }
+
     renderTimeline();
-    showToast(`${done}장의 사진을 가져왔어요 🎉`);
+
+    const failed = files.length - done;
+    if (failed > 0) {
+      showToast(`${done}장 저장 완료, ${failed}장 실패`);
+    } else {
+      showToast(`${done}장의 사진을 가져왔어요 🎉`);
+    }
   }
 
   /* ============================================================
