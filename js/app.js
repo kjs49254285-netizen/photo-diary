@@ -839,8 +839,9 @@ const App = (() => {
     document.getElementById('modal-overlay').classList.remove('hidden');
     _modalCb = onConfirm;
     document.getElementById('modal-confirm-btn').onclick = () => {
+      const cb = _modalCb; // closeModal()이 null로 초기화하기 전에 저장
       closeModal();
-      if (_modalCb) _modalCb();
+      if (cb) cb();
     };
   }
   function cancelModal() { closeModal(); }
