@@ -828,5 +828,27 @@ const App = (() => {
 
 })();
 
-/* ── Expose to module scope (firebase.js calls window.App.init()) ── */
+/* ── Expose to module scope ── */
 window.App = App;
+
+/*
+ * 폴백 시작 로직
+ * - firebase.js 모듈이 정상 로드되면 window._startApp()을 즉시 호출
+ * - firebase.js 모듈이 완전히 실패(로드 자체 불가)하면
+ *   DOMContentLoaded + 2초 후 IndexedDB(db.js)로 자동 폴백
+ */
+window._startApp = function () {
+  if (window._appStarted) return;
+  window._appStarted = true;
+  App.init();
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    if (!window._appStarted) {
+      // Firebase 모듈이 응답 없음 → IndexedDB로 폴백
+      window.DB = window._indexedDB; // db.js가 설정한 IndexedDB 인터페이스
+      window._startApp();
+    }
+  }, 2500);
+});

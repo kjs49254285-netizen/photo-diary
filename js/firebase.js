@@ -129,6 +129,7 @@ try {
   const cred = await signInAnonymously(auth);
   uid = cred.user.uid;
 
+  // Firebase DB로 window.DB를 교체
   window.DB = {
     init: async () => {},
     getPhotos, getPhoto, savePhoto, deletePhoto,
@@ -136,28 +137,23 @@ try {
   };
 
   if (_overlay) _overlay.classList.add('hidden');
-  window.App.init();
+  // Firebase 연결 성공 → Firebase DB로 앱 시작
+  window._startApp();
 
 } catch (err) {
-  console.error('Firebase 초기화 실패:', err);
+  console.warn('Firebase 연결 실패, 로컬 저장소로 전환합니다:', err.message);
   if (_overlay) _overlay.classList.add('hidden');
 
-  document.getElementById('app').innerHTML = `
-    <div style="
-      display:flex; flex-direction:column; align-items:center;
-      justify-content:center; height:100dvh;
-      font-family:-apple-system,sans-serif; padding:32px; text-align:center; gap:14px;
-    ">
-      <span style="font-size:44px">⚠️</span>
-      <p style="font-size:18px; font-weight:700; color:#2B2B2B;">연결에 실패했어요</p>
-      <p style="font-size:14px; color:#767676; line-height:1.6;">
-        인터넷 연결을 확인하고<br>아래 버튼을 눌러 다시 시도해주세요
-      </p>
-      <p style="font-size:12px; color:#CCC;">${err.message}</p>
-      <button onclick="location.reload()" style="
-        margin-top:8px; padding:13px 28px;
-        background:#FF8C69; color:white; border:none; border-radius:12px;
-        font-size:15px; font-weight:600; cursor:pointer;
-      ">다시 시도</button>
-    </div>`;
+  // window.DB는 이미 db.js(IndexedDB)로 설정되어 있음 → 그대로 사용
+  // 사용자에게 안내 후 앱 시작
+  setTimeout(() => {
+    const toast = document.getElementById('toast');
+    if (toast) {
+      toast.textContent = '⚠️ Firebase 미연결 — 데이터가 이 기기에만 저장됩니다';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+  }, 500);
+
+  window._startApp();
 }

@@ -70,12 +70,12 @@ const DB = (() => {
   }
 
   /* ── Public API ── */
-  return {
+  const api = {
     init,
     /* photos */
     getPhotos:   ()       => getAll('photos'),
     getPhoto:    (id)     => get('photos', id),
-    savePhoto:   (photo)  => put('photos', photo),
+    savePhoto:   (photo)  => put('photos', photo).then(() => photo), // savePhoto도 photo 반환
     deletePhoto: (id)     => remove('photos', id),
     /* diaries */
     getDiaries:   ()       => getAll('diaries'),
@@ -83,4 +83,10 @@ const DB = (() => {
     saveDiary:    (diary)  => put('diaries', diary),
     deleteDiary:  (id)     => remove('diaries', id),
   };
+
+  // firebase.js 모듈이 실패할 경우를 대비한 전역 폴백으로 등록
+  window.DB = api;
+  window._indexedDB = api;
+
+  return api;
 })();
