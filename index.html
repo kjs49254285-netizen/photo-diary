@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#FF8C69">
+  <title>포토 다이어리</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ===== HEADER ===== -->
+    <header id="app-header" class="app-header">
+      <button id="btn-back" class="btn-icon hidden" onclick="App.goBack()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h1 id="header-title" class="header-title">포토 다이어리</h1>
+      <div id="header-actions" class="header-actions"></div>
+    </header>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main id="main-content" class="main-content">
+
+      <!-- ========== TIMELINE ========== -->
+      <section id="screen-timeline" class="screen active">
+        <div class="screen-inner">
+          <div id="timeline-topbar" class="timeline-topbar">
+            <p class="timeline-hint">사진을 선택해 일기를 써보세요</p>
+            <button class="btn-sm btn-outline" onclick="App.openFilePicker()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12l7-7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              사진 가져오기
+            </button>
+          </div>
+
+          <div id="timeline-empty" class="empty-state hidden">
+            <div class="empty-emoji">🖼️</div>
+            <p class="empty-title">아직 사진이 없어요</p>
+            <p class="empty-desc">위 버튼을 눌러 갤러리에서 사진을 가져오면<br>날짜별로 자동 정리돼요</p>
+          </div>
+
+          <div id="timeline-content"></div>
+
+          <!-- Selection bottom bar -->
+          <div id="selection-bar" class="selection-bar hidden">
+            <button class="btn-text-muted" onclick="App.exitSelectionMode()">취소</button>
+            <span id="selection-count" class="selection-count">0장 선택</span>
+            <button class="btn-primary btn-sm" id="btn-write-diary" onclick="App.startWriteDiary()" disabled>일기 쓰기</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== DIARY LIST ========== -->
+      <section id="screen-diary-list" class="screen">
+        <div class="screen-inner">
+          <div id="diary-list-empty" class="empty-state">
+            <div class="empty-emoji">📖</div>
+            <p class="empty-title">아직 일기가 없어요</p>
+            <p class="empty-desc">타임라인에서 사진을 선택해<br>첫 일기를 써보세요</p>
+          </div>
+          <div id="diary-list-content" class="hidden"></div>
+        </div>
+        <!-- FAB: new diary without photo -->
+        <button class="fab" id="fab-new-diary" onclick="App.startNewDiary()" title="새 일기 쓰기">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </section>
+
+      <!-- ========== CALENDAR ========== -->
+      <section id="screen-calendar" class="screen">
+        <div class="screen-inner">
+          <div class="calendar-container">
+            <div class="calendar-nav">
+              <button class="btn-icon" onclick="App.calendarPrevMonth()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <span id="calendar-month-label" class="calendar-month-label"></span>
+              <button class="btn-icon" onclick="App.calendarNextMonth()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            <div class="calendar-weekdays">
+              <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
+            </div>
+            <div id="calendar-grid" class="calendar-grid"></div>
+          </div>
+          <div id="calendar-diary-preview" class="calendar-diary-preview"></div>
+        </div>
+      </section>
+
+      <!-- ========== DIARY WRITE ========== -->
+      <section id="screen-diary-write" class="screen">
+        <div class="screen-inner">
+          <div id="write-photos-strip" class="write-photos-strip"></div>
+          <form id="diary-form" onsubmit="App.handleDiarySubmit(event)">
+            <div class="form-row">
+              <label class="form-label">날짜</label>
+              <input type="date" id="write-date" class="form-input">
+            </div>
+            <div class="form-row">
+              <input type="text" id="write-title" class="form-input form-input-title" placeholder="제목 (선택사항)" maxlength="50">
+            </div>
+            <div class="form-row">
+              <textarea id="write-body" class="form-textarea" placeholder="오늘의 이야기를 적어주세요..." maxlength="2000" oninput="App.updateCharCount()"></textarea>
+              <div class="char-count"><span id="body-char-count">0</span> / 2000</div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">오늘의 감정</label>
+              <div id="emotion-selector" class="emotion-selector"></div>
+            </div>
+            <div class="form-submit-row">
+              <button type="submit" class="btn-primary btn-full" id="btn-save-diary">저장하기</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ========== DIARY DETAIL ========== -->
+      <section id="screen-diary-detail" class="screen">
+        <div class="screen-inner" id="detail-inner"></div>
+      </section>
+
+    </main>
+
+    <!-- ===== BOTTOM NAV ===== -->
+    <nav id="bottom-nav" class="bottom-nav">
+      <button class="nav-item active" data-tab="timeline" onclick="App.navigate('timeline')">
+        <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/>
+          <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/>
+          <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/>
+        </svg>
+        <span>타임라인</span>
+      </button>
+      <button class="nav-item" data-tab="diary-list" onclick="App.navigate('diary-list')">
+        <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M4 4.5A2.5 2.5 0 016.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15z" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M9 7h6M9 11h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span>일기장</span>
+      </button>
+      <button class="nav-item" data-tab="calendar" onclick="App.navigate('calendar')">
+        <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span>캘린더</span>
+      </button>
+    </nav>
+
+  </div><!-- #app -->
+
+  <!-- Hidden file input -->
+  <input type="file" id="file-input" accept="image/*" multiple style="display:none" onchange="App.handleFileSelect(event)">
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Confirm modal -->
+  <div id="modal-overlay" class="modal-overlay hidden" onclick="App.closeModalOutside(event)">
+    <div class="modal-box">
+      <p id="modal-message" class="modal-message"></p>
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="App.cancelModal()">취소</button>
+        <button class="btn-modal-confirm" id="modal-confirm-btn">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loading-card">
+      <div class="loading-spinner"></div>
+      <p id="loading-text" class="loading-text">사진을 불러오는 중...</p>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/app.js"></script>
+  <script type="module" src="js/firebase.js"></script>
+</body>
+</html>
